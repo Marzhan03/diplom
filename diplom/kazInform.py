@@ -7,7 +7,7 @@ from lxml.html.clean import Cleaner
 
 
 
-class ZakonKzParser:
+class KazInform:
     def __init__(self):
         self.catpage_massiv = []
         self.item_href_massiv = []
@@ -15,8 +15,8 @@ class ZakonKzParser:
         self.category_massiv = ["экономика"]
         self.site_massiv = ["zakon.kz"]
         self.location_massiv = ["Казахстан"]
-        self.main_url = "https://www.zakon.kz"
-        self.page_url = "https://www.zakon.kz/ekonomika-biznes/"
+        self.main_url = "https://www.inform.kz"
+        self.page_url = "https://www.inform.kz/category/ekonomika_s1"
 
 
     def cleaner(self, x):
@@ -31,31 +31,20 @@ class ZakonKzParser:
         cleaned_text = cleaned_text[:readalso_index]
         return cleaned_text
 
-    def execute_query(self, query_text, is_insert=False):
-        conn = psycopg2.connect(dbname='diplom', user='postgres', 
-                    password='cao95records', host='localhost')
-        cursor = conn.cursor()
-
-        cursor.execute(query_text)
-
-        if is_insert:
-            conn.commit()
-
-        cursor.close()
-        conn.close()
-
-        return cursor
 
     def begin_parse(self):   
         response = requests.get(self.page_url)
         response_text = response.text
         soup = BeautifulSoup(response_text, "html.parser")
-
-        paginationList = soup.find("div", {"class": "paginationWrap"})
+        catPage = soup.find("div", {"class": "catpage"})
+        print("fkshgfjhd",catPage)
+        paginationList = catPage.find("ul", {"class": "pagination"})
+        print(paginationList)
         paginationLi = paginationList.find_all("li")
         for li in paginationLi:
             li_href = li.find('a')
             li_href = self.main_url+li_href['href']
+            print(li_href)
 
 
 
@@ -89,8 +78,9 @@ class ZakonKzParser:
                 datetime = date['datetime']
             
 
-
-                
+                conn = psycopg2.connect(dbname='diplom', user='postgres', 
+                    password='cao95records', host='localhost')
+                cursor = conn.cursor()
                 cursor = self.execute_query("SELECT * FROM category WHERE name='%s'"%self.category_massiv[0])
                 
 
@@ -129,4 +119,12 @@ class ZakonKzParser:
                 id_location=id_location[0]
 
                 news_massiv = (title, datetime, contentNews, id_category, id_location, id_site)
-                self.execute_query("INSERT INTO news (title, date, content, category_id, location_id, site_id) VALUES ('%s', '%s','%s','%s','%s','%s')"%(news_massiv[0],news_massiv[1],news_massiv[2].replace('\'', '-'),news_massiv[3],news_massiv[4],news_massiv[5]), is_insert=True)
+                self.execute_query("INSERT INTO news (title, date, content, category_id, location_id, site_id) VALUES ('%s', '%s','%s','%s','%s','%s')"%(news_massiv[0],news_massiv[1],news_massiv[2].replace('\'', '-'),news_massiv[3],news_massiv[4],news_massiv[5]))
+                conn.commit()
+
+                cursor.close()
+                conn.close()
+
+
+kazInform = KazInform()
+kazInform.begin_parse()
