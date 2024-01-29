@@ -16,39 +16,39 @@ from selenium.common.exceptions import NoSuchElementException
 
 def cleaner(x):
     cleaner = Cleaner()
-    cleaner.remove_tags = ['a', 'p', 'div', '<div>', 'span', 'blockquote','li']
+    cleaner.remove_tags = ['a', 'p', 'div', 'figure', '<div>', 'span', 'blockquote','li', '[', ']']
     cleaner.javascript = True # This is True because we want to activate the javascript filter
     cleaner.style = True      # This is True because we want to activate the styles & stylesheet filter
-
     cleaned_text = cleaner.clean_html(str(x))
 
     return cleaned_text
 
-op = webdriver.ChromeOptions()
-# op.add_argument('headless')
-# op.add_argument('disable-gpu')
-ua = UserAgent()
-driver = webdriver.Chrome(options=op)
-first_href = 'https://www.inform.kz/category/ekonomika_s1'
+# op = webdriver.ChromeOptions()
+# # op.add_argument('headless')
+# # op.add_argument('disable-gpu')
+# ua = UserAgent()
+driver = webdriver.Chrome()
+first_href = 'https://kapital.kz/economic'
 driver.get(first_href)
-element = driver.find_element(By.CSS_SELECTOR, "section.catpage")
-ul = element.find_elements(By.XPATH, "/html/body/main/section/div/div/div[1]/ul[2]/li")
+element = driver.find_element(By.CSS_SELECTOR, "main.main__contant")
+ul = element.find_elements(By.XPATH, "//*[@id='main-container']/main/main/div[2]/ul[1]/li[1]")
 href = []
 i = 0
 catpage_massiv = []
 category_massiv = ["экономика"]
-site_massiv = ["kazInform"]
+site_massiv = ["kapital.kz"]
 location_massiv = ["Казахстан"]
+url = 'https://kapital.kz'
 
 while True:
-    elements = driver.find_elements(By.CSS_SELECTOR, "div.catpage__news > div")
+    elements = driver.find_elements(By.CSS_SELECTOR, "div.main-news > article")
     next_div = 0
     while next_div < len(elements):
         # a = "https://www.inform.kz/ru/oficial-no-zapuschen-zheleznodorozhnyy-onlayn-portal-kitay-evropa_a4112335"
         try:
-            a = elements[next_div].find_element(By.CSS_SELECTOR, "a").get_attribute("href")
+            a = elements[next_div].find_element(By.CSS_SELECTOR, "a.main-news__name").get_attribute("href")
+            print("hjghxghcv",a)
             driver.get(a)
-
             error_exists = driver.find_elements(By.CSS_SELECTOR, "div.error__wrapper")
 
             if error_exists != []:
@@ -56,31 +56,30 @@ while True:
                 driver.get(first_href)
                 elements = driver.find_elements(By.CSS_SELECTOR, "div.catpage__news > div")
                 continue
-
-            # div = driver.find_elements(By.CSS_SELECTOR, "div.article__body")
-            div = driver.find_element(By.CSS_SELECTOR, "div.article__body")
-            dateFirst = div.find_element(By.CSS_SELECTOR, "div.article__time")
-            dateFirst_text = dateFirst.text
-            splited_date = dateFirst_text.split(' ')
+            # div = driver.find_element(By.XPATH, "//*[@id='main-container']/main[1]/main/div[3]/article")  
+            time_element = driver.find_element(By.CLASS_NAME, 'information-article__date')
+            dateFirst = time_element.text
+            splited_date = dateFirst.split('.')
             date_format = splited_date[1:4]
-            months = {
-                "Январь": 1, "Февраль": 2, "Март": 3, "Апрель": 4, "Май": 5, "Июнь": 6,
-                "Июль": 7, "Август": 8, "Сентябрь": 9, "Октябрь": 10, "Ноябрь": 11, "Декабрь": 12
-            }
-            month_num = months[date_format[1]]
 
-            date = str(date_format[2])+"-"+str(month_num)+"-"+str(date_format[0])
-
-            head = div.find_element(By.CSS_SELECTOR, "div.article__head")
+            clean_date_str = dateFirst.replace(" · ", ".")
+            splited_date = clean_date_str.split('.')
+            date = str(splited_date[2])+"-"+str(splited_date[1])+"-"+str(splited_date[0])
+            head = driver.find_element(By.CSS_SELECTOR, "header.article__header")
             title_web = head.find_element(By.CSS_SELECTOR, "h1")
-            
             title = title_web.text
-
-            content_div= div.find_element(By.CSS_SELECTOR, "div.article__body-text")
-            content = content_div.text
-            print(content)
+            print(title)
+            content_div= driver.find_elements (By.CSS_SELECTOR, "div.article__body > div")
+            text_list = [div.text for div in content_div]
+            content = cleaner(text_list)
+            start_index = content.find("['") + 2
+            end_index = content.find("']</div>")
+            list_of_strings = content[start_index:end_index].split("', '")
+            result_string = ' '.join(list_of_strings)
+            content = result_string
+            
             conn = psycopg2.connect(dbname='diplom', user='postgres', 
-                        password='cao95records', host='localhost')
+                        password='marzhan', host='localhost')
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM category WHERE name='%s'"%category_massiv[0])
             result_category=cursor.fetchall()
@@ -129,13 +128,12 @@ while True:
         finally:
             next_div += 1
             driver.get(first_href)
-            elements = driver.find_elements(By.CSS_SELECTOR, "div.catpage__news > div")
-         
+            elements = driver.find_elements(By.CSS_SELECTOR, "div.main-news > article")
       
 
-    element = driver.find_element(By.CSS_SELECTOR, "section.catpage")
+    element = driver.find_element(By.CSS_SELECTOR, "main.main__contant")
 
-    ul = element.find_elements(By.XPATH, "/html/body/main/section/div/div/div[1]/ul[2]/li")
+    ul = element.find_elements(By.CSS_SELECTOR, "ul.pagination > li")
 
     first_href = ul[-1].find_element(By.CSS_SELECTOR, "a").get_attribute('href')
 

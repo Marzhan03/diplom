@@ -30,21 +30,7 @@ class ZakonKzParser:
         readalso_index = cleaned_text.index("Читайте также")
         cleaned_text = cleaned_text[:readalso_index]
         return cleaned_text
-
-    def execute_query(self, query_text, is_insert=False):
-        conn = psycopg2.connect(dbname='diplom', user='postgres', 
-                    password='cao95records', host='localhost')
-        cursor = conn.cursor()
-
-        cursor.execute(query_text)
-
-        if is_insert:
-            conn.commit()
-
-        cursor.close()
-        conn.close()
-
-        return cursor
+  
 
     def begin_parse(self):   
         response = requests.get(self.page_url)
@@ -87,11 +73,13 @@ class ZakonKzParser:
                 contentNews = self.cleaner(newscontent)
                 date = article.find("time", {"class": "date"})
                 datetime = date['datetime']
-            
+                conn = psycopg2.connect(dbname='diplom', user='postgres', 
+                    password='cao95records', host='localhost')
+                cursor = conn.cursor()
 
 
                 
-                cursor = self.execute_query("SELECT * FROM category WHERE name='%s'"%self.category_massiv[0])
+                cursor.execute("SELECT * FROM category WHERE name='%s'"%self.category_massiv[0])
                 
 
                 result_category=cursor.fetchall()
@@ -129,4 +117,10 @@ class ZakonKzParser:
                 id_location=id_location[0]
 
                 news_massiv = (title, datetime, contentNews, id_category, id_location, id_site)
-                self.execute_query("INSERT INTO news (title, date, content, category_id, location_id, site_id) VALUES ('%s', '%s','%s','%s','%s','%s')"%(news_massiv[0],news_massiv[1],news_massiv[2].replace('\'', '-'),news_massiv[3],news_massiv[4],news_massiv[5]), is_insert=True)
+                cursor.execute("INSERT INTO news (title, date, content, category_id, location_id, site_id) VALUES ('%s', '%s','%s','%s','%s','%s')"%(news_massiv[0],news_massiv[1],news_massiv[2].replace('\'', '-'),news_massiv[3],news_massiv[4],news_massiv[5]), is_insert=True)
+                conn.commit()
+
+                cursor.close()
+                conn.close()
+
+        
