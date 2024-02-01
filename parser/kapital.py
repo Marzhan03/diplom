@@ -1,23 +1,12 @@
-import psycopg2
 import dotenv, os
 dotenv.load_dotenv()
-from ast import parse
 from selenium import webdriver
-import selenium.common.exceptions as seleniumExceptions
-# import chromedriver_binary
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-import time, json, logging, datetime
-import logging
-import random
-from datetime import datetime
+import time
 from lxml.html.clean import Cleaner
-import psycopg2
-from selenium.common.exceptions import NoSuchElementException
 from DAL import DAL
 
-dal = DAL()
+
 
 class Kapital:
     def __init__(self):
@@ -28,16 +17,17 @@ class Kapital:
         self.url = os.getenv("KAPITAL_URL")
         self.driver = webdriver.Chrome()
         self.next_div = 0
+        self.dal = DAL()
 
     def check_existence(self, table, column, field):
-        result = dal.select(table, column, where="name='%s'"%field, fetch=True)
+        result = self.dal.select(table, column, where="name='%s'"%field, fetch=True)
 
         if len(result) > 0:
             print("gbg")
         else:
-            dal.insert(table, 'name', field)
+            self.dal.insert(table, 'name', field)
 
-        id = dal.select(table, column, where="name='%s'"%field, fetch=False)
+        id = self.dal.select(table, column, where="name='%s'"%field, fetch=False)
         id = id[0]
 
         return id
@@ -87,7 +77,7 @@ class Kapital:
                     result_string = ' '.join(list_of_strings)
                     content = result_string
                     
-                    dal.connection_open()
+                    self.dal.connection_open()
                     id_category = self.check_existence("category", "*", self.category_massiv[0])
                     id_site= self.check_existence("site", "*", self.site_massiv)
                     id_location=self.check_existence("location", "*", self.location)
@@ -101,8 +91,8 @@ class Kapital:
                         news_massiv[4],
                         news_massiv[5]
                     )
-                    dal.insert("news", column_names, *values)
-                    dal.connection_close()
+                    self.dal.insert("news", column_names, *values)
+                    self.dal.connection_close()
                 except Exception as e:
                     print("Error occured: ", e)
                 finally:

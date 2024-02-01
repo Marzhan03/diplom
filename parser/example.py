@@ -1,12 +1,12 @@
 import schedule
 import time
-from kapital import Kapital
+from eadaily import EaDaily
 
 
-kapital = Kapital()
+eadaily = EaDaily()
 
 def my_task():
-    kapital.parse()
+    eadaily.parse()
     print("Executing the task...")
 
 # Schedule the task to run every 5 seconds
